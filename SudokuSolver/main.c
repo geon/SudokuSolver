@@ -8,6 +8,23 @@
 
 #include <stdio.h>
 
+typedef int Board[9][9];
+
+void printBoard (Board board) {
+	
+	for (int y = 0; y < 9; ++y) {
+		
+		for (int x = 0; x < 9; ++x) {
+		
+			printf(" %d", board[y][x]);
+		}
+
+		printf("\n");
+	}
+}
+
+
+
 int main(int argc, const char * argv[])
 {
 
@@ -27,9 +44,10 @@ int main(int argc, const char * argv[])
 		{0,0,0,  7,3,9,  4,0,0}
 	};
 	
-	board[3][4] = 1;
+
+	printBoard(board);
 	
-	printf("Hello, World!\n");
+	
     return 0;
 }
 
