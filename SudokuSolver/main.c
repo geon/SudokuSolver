@@ -79,6 +79,41 @@ Possibilities cellPossibilities (Board board, int x, int y) {
 }
 
 
+int numPossibilities (Possibilities p) {
+	
+	int count = 0;
+	
+	for (int i = 1; i <= 9; ++i) {
+		
+		if (1<<i & p) {
+			
+			++count;
+		}
+	}
+	
+	return count;
+}
+
+
+int constrainedValue (Possibilities p) {
+	
+	if (numPossibilities(p) != 1) {
+		
+		return 0;
+	}
+		
+	for (int i = 1; i <= 9; ++i) {
+		
+		if (1<<i & p) {
+			
+			return i;
+		}
+	}
+
+	return 0;
+}
+
+
 void printPossibilities (Possibilities p) {
 
 	int first = 1;
@@ -104,6 +139,8 @@ void printPossibilities (Possibilities p) {
 
 void printBoard (Board board) {
 	
+	printf("\n");
+
 	for (int y = 0; y < 9; ++y) {
 		
 		for (int x = 0; x < 9; ++x) {
@@ -125,6 +162,38 @@ void printBoard (Board board) {
 }
 
 
+int setConstrainedCells (Board board) {
+
+	printf("\n");
+
+	int changes = 0;
+	
+	for (int y = 0; y < 9; ++y) {
+		
+		for (int x = 0; x < 9; ++x) {
+			
+			if (!board[y][x]) {
+				
+				Possibilities p = cellPossibilities(board, x, y);
+				
+				int constrained = constrainedValue(p);
+				
+				if (constrained) {
+					
+					printf("Constrained x: %d, y: %d, to: %d\n", x, y, constrained);
+					
+					board[y][x] = constrained;
+					
+					++changes;
+				}
+			}
+		}
+	}
+	
+	return changes;
+}
+
+
 int main (int argc, const char * argv[]) {
 	
 	int board[9][9] = {
@@ -140,13 +209,26 @@ int main (int argc, const char * argv[]) {
 		{4,0,0,  8,0,0,  0,0,0},
 		{0,0,0,  7,3,9,  4,0,0}
 	};
-
-	printBoard(board);
 	
-	printPossibilities(rowPossibilities(board, 0));
-	printPossibilities(colPossibilities(board, 0));
-	printPossibilities(tilePossibilities(board, 0, 0));
-	printPossibilities(cellPossibilities(board, 0, 0));
+//	int x = 6;
+//	int y = 5;
+//	
+//	printPossibilities(rowPossibilities(board, y));
+//	printPossibilities(colPossibilities(board, x));
+//	printPossibilities(tilePossibilities(board, x/3, y/3));
+	
+//	Possibilities p = cellPossibilities(board, x, y);
+//	
+//	printPossibilities(p);
+//	
+//	printf("%d\n", numPossibilities(p));
+//	printf("%d\n", constrainedValue(p));
+	
+	do {
+
+		printBoard(board);
+
+	} while (setConstrainedCells(board));
 	
     return 0;
 }
