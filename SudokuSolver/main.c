@@ -16,7 +16,16 @@ void printBoard (Board board) {
 		
 		for (int x = 0; x < 9; ++x) {
 		
-			printf(" %d", board[y][x]);
+			int cell = board[y][x];
+			
+			if (cell) {
+				
+				printf(" %d", board[y][x]);
+				
+			} else {
+				
+				printf("  ");
+			}
 		}
 
 		printf("\n");
