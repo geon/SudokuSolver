@@ -164,8 +164,6 @@ void printBoard (Board board) {
 
 int setConstrainedCells (Board board) {
 
-	printf("\n");
-
 	int changes = 0;
 	
 	for (int y = 0; y < 9; ++y) {
@@ -180,7 +178,7 @@ int setConstrainedCells (Board board) {
 				
 				if (constrained) {
 					
-					printf("Constrained x: %d, y: %d, to: %d\n", x, y, constrained);
+					printf("\nConstrained x: %d, y: %d, to: %d", x, y, constrained);
 					
 					board[y][x] = constrained;
 					
@@ -191,6 +189,80 @@ int setConstrainedCells (Board board) {
 	}
 	
 	return changes;
+}
+
+
+int isSolved (Board board) {
+
+	for (int y = 0; y < 9; ++y) {
+		
+		for (int x = 0; x < 9; ++x) {
+			
+			if (!board[y][x]) {
+				
+				return 0;
+			}
+		}
+	}
+	
+	return 1;
+}
+
+
+void copyBoard (Board from, Board to) {
+	
+	for (int y = 0; y < 9; ++y) {
+		
+		for (int x = 0; x < 9; ++x) {
+			
+			to[y][x] = from[y][x];
+		}
+	}
+}
+
+
+int solveBoard (Board board) {
+	
+	// Try to solve the board by constraints.
+	while (setConstrainedCells(board));
+	
+	if(isSolved(board)) {
+		
+		return 1;
+	}
+
+	// Underconstrained, so try out all possible moves.
+	for (int y = 0; y < 9; ++y) {
+		for (int x = 0; x < 9; ++x) {
+			if (!board[y][x]) {
+				Possibilities p = cellPossibilities(board, x, y);
+				for (int i = 1; i <= 9; ++i) {
+					if (1<<i & p) {
+						
+						// Use a copy.
+						Board copy;
+						copyBoard(board, copy);
+						
+						// Do the move.
+						copy[y][x] = i;
+						
+						printBoard(copy);
+						
+						if (solveBoard(copy)) {
+							
+							// Found a complete solution, so use it.
+							
+							copyBoard(copy, board);
+							return 1;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// No solution found. :(
+	return 0;
 }
 
 
@@ -255,13 +327,11 @@ int main (int argc, const char * argv[]) {
 		{0,0,4,  0,0,0,  0,0,1}
 	};
 	
-	Board *board = &hard;
-	
-	do {
+	Board *board = &medium;
 
-		printBoard(*board);
-
-	} while (setConstrainedCells(*board));
+	printBoard(*board);
+	solveBoard(*board);
+	printBoard(*board);
 
 	
 	//	int x = 6;
