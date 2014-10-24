@@ -7,6 +7,7 @@
 //
 
 #include <stdio.h>
+#include <stdlib.h>
 
 typedef int Board[9][9];
 typedef int Possibilities;
@@ -350,6 +351,23 @@ void copyBoard (Board from, Board to) {
 }
 
 
+struct ConstraintsPerMove {
+	
+	int x;
+	int y;
+	int value;
+	int numConstraints;
+};
+
+int compareConstraintsPerMove (const struct ConstraintsPerMove * a, const struct ConstraintsPerMove * b) {
+
+	// DESC
+	return
+	b->numConstraints -
+	a->numConstraints;
+}
+
+
 int solveBoard (Board board) {
 	
 	// Try to solve the board by constraints.
@@ -360,37 +378,67 @@ int solveBoard (Board board) {
 		return 1;
 	}
 
-	// Underconstrained, so try out all possible moves.
+	struct ConstraintsPerMove constraintsPerMove[9*9*9];
+	
+	// Underconstrained, so find all possible moves.
+	int numFoundConstraints = 0;
 	for (int y = 0; y < 9; ++y) {
 		for (int x = 0; x < 9; ++x) {
+
 			if (!board[y][x]) {
+
 				Possibilities p = cellPossibilities(board, x, y);
 				for (int i = 1; i <= 9; ++i) {
-					if (1<<i & p) {
+
 						
-						// Use a copy.
-						Board copy;
-						copyBoard(board, copy);
+					if (p & 1<<i) {
+											
+						constraintsPerMove[numFoundConstraints] =
+						(struct ConstraintsPerMove) {
+							.x = x,
+							.y = y,
+							.value = i,
+							.numConstraints =
+							numConstrainedByMove(board, x, y, i)
+						};
 						
-						// Do the move.
-						copy[y][x] = i;
-						
-//						printBoard(copy);
-//						printNumPossibilities(copy);
-						
-						if (solveBoard(copy)) {
-							
-							// Found a complete solution, so use it.
-							
-							copyBoard(copy, board);
-							return 1;
-						}
+						++numFoundConstraints;
 					}
 				}
 			}
 		}
 	}
 
+	// Do the possible moves in the most constraining order.
+	qsort(&constraintsPerMove,
+		  numFoundConstraints,
+		  sizeof(struct ConstraintsPerMove),
+		  (int (*)(const void *, const void *)) compareConstraintsPerMove);
+	
+	for (int j = 0; j < numFoundConstraints; ++j) {
+
+		int x = constraintsPerMove[j].x;
+		int y = constraintsPerMove[j].y;
+		int value = constraintsPerMove[j].value;
+						
+		// Use a copy.
+		Board copy;
+		copyBoard(board, copy);
+		
+		// Do the move.
+		copy[y][x] = value;
+		
+		printBoard(copy);
+		
+		if (solveBoard(copy)) {
+			
+			// Found a complete solution, so use it.
+			
+			copyBoard(copy, board);
+			return 1;
+		}
+	}
+	
 	// No solution found. :(
 	return 0;
 }
@@ -442,7 +490,7 @@ int main (int argc, const char * argv[]) {
 		{0,0,5,  2,4,0,  6,0,3}
 	};
 	
-
+	
 	Board evil = {
 		{2,0,0,  0,0,0,  4,0,0},
 		{0,0,1,  0,0,7,  0,0,0},
@@ -457,18 +505,32 @@ int main (int argc, const char * argv[]) {
 		{0,0,4,  0,0,0,  0,0,1}
 	};
 	
+	Board hardest = {
+		{8,0,0,  0,0,0,  0,0,0},
+		{0,0,3,  6,0,0,  0,0,0},
+		{0,7,0,  0,9,0,  2,0,0},
+		
+		{0,5,0,  0,0,7,  0,0,0},
+		{0,0,0,  0,4,5,  7,0,0},
+		{0,0,0,  1,0,0,  0,3,0},
+		
+		{0,0,1,  0,0,0,  0,6,8},
+		{0,0,8,  5,0,0,  0,1,0},
+		{0,9,0,  0,0,0,  4,0,0}
+	};
+	
 	Board *board = &medium;
 
-//	printBoard(*board);
-//	solveBoard(*board);
-//	printBoard(*board);
+	printBoard(*board);
+	solveBoard(*board);
+	printBoard(*board);
 
 	
-	printBoard(*board);
-	while (setConstrainedCells(*board));
-	printBoard(*board);
-	printBoardPossibilities(*board);
-	printNumPossibilities(*board);
+	// printBoard(*board);
+	// while (setConstrainedCells(*board));
+	// printBoard(*board);
+	// printBoardPossibilities(*board);
+	// printNumPossibilities(*board);
 
 	
 	//	int x = 6;
