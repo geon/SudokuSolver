@@ -48,6 +48,59 @@ Possibilities colPossibilities (Board board, int x) {
 }
 
 
+// If I put i in this cell, how many cells do I constrain?
+int numConstrainedByMove(Board *board, int x, int y, int i) {
+	
+	int count = 0;
+	
+	// Row
+	for (int vx = 0; vx < 9; ++vx) {
+		
+		if (vx == x) {
+			
+			continue;
+		}
+		
+		if (board[y][vx] && 1<<i) {
+			
+			++count;
+		}
+	}
+	
+	// Collumn
+	for (int vy = 0; vy < 9; ++vy) {
+		
+		if (vy == y) {
+			
+			continue;
+		}
+		
+		if (board[vy][x] && 1<<i) {
+			
+			++count;
+		}
+	}
+	
+	// The rest of the tile
+	for (int vy = 0; vy < 3; ++vy) {
+		for (int vx = 0; vx < 3; ++vx) {
+			
+			if (vx == x || vy == y) {
+				
+				continue;
+			}
+			
+			if (board[vy][vx] && 1<<i) {
+				
+				++count;
+			}
+		}
+	}
+
+	return 0;
+}
+
+
 Possibilities tilePossibilities (Board board, int tx, int ty) {
 	
 	Possibilities p = ~0;
@@ -79,7 +132,7 @@ Possibilities cellPossibilities (Board board, int x, int y) {
 }
 
 
-int numPossibilities (Possibilities p) {
+int boardNumPossibilities (Possibilities p) {
 	
 	int count = 0;
 	
@@ -97,7 +150,7 @@ int numPossibilities (Possibilities p) {
 
 int constrainedValue (Possibilities p) {
 	
-	if (numPossibilities(p) != 1) {
+	if (boardNumPossibilities(p) != 1) {
 		
 		return 0;
 	}
@@ -153,11 +206,87 @@ void printBoard (Board board) {
 				
 			} else {
 				
-				printf("  ");
+				printf(" .");
 			}
 		}
 		
 		printf("\n");
+	}
+}
+
+
+void printNumPossibilities (Board board) {
+	
+	printf("\n");
+	
+	for (int y = 0; y < 9; ++y) {
+		
+		for (int x = 0; x < 9; ++x) {
+			
+			if (!board[y][x]) {
+				
+				printf(" %d", boardNumPossibilities(cellPossibilities(board, x, y)));
+				
+			} else {
+				
+				printf(" .");
+			}
+		}
+		
+		printf("\n");
+	}
+}
+
+
+void printBoardPossibilities (Board board) {
+	
+	printf("\n");
+	
+	for (int y = 0; y < 9; ++y) {
+		
+		for (int x = 0; x < 9; ++x) {
+			
+			if (!board[y][x]) {
+				
+				Possibilities p = cellPossibilities(board, x, y);
+				
+				const int maxPosiibilities = 3;
+				int numPossibilities = boardNumPossibilities(p);
+				if (numPossibilities <= maxPosiibilities) {
+					
+					int numPrinted = 0;
+					for (int i = 1; i <= 9; ++i) {
+						
+						if (1<<i & p) {
+							
+							printf("%d", i);
+							++numPrinted;
+							if (numPrinted >= maxPosiibilities) {
+								
+								break;
+							}
+						}
+					}
+					
+					for (int i = 0; i < 3 - numPossibilities; ++i) {
+						
+						printf(" ");
+					}
+					
+				} else {
+					
+					printf(".  ");
+				}
+								
+			} else {
+				
+				printf("%d  ", board[y][x]);
+			}
+			
+			printf(" ");
+		}
+		
+		printf("\n\n");
 	}
 }
 
@@ -178,7 +307,7 @@ int setConstrainedCells (Board board) {
 				
 				if (constrained) {
 					
-					printf("\nConstrained x: %d, y: %d, to: %d", x, y, constrained);
+//					printf("\nConstrained x: %d, y: %d, to: %d", x, y, constrained);
 					
 					board[y][x] = constrained;
 					
@@ -246,7 +375,8 @@ int solveBoard (Board board) {
 						// Do the move.
 						copy[y][x] = i;
 						
-						printBoard(copy);
+//						printBoard(copy);
+//						printNumPossibilities(copy);
 						
 						if (solveBoard(copy)) {
 							
@@ -329,9 +459,16 @@ int main (int argc, const char * argv[]) {
 	
 	Board *board = &medium;
 
+//	printBoard(*board);
+//	solveBoard(*board);
+//	printBoard(*board);
+
+	
 	printBoard(*board);
-	solveBoard(*board);
+	while (setConstrainedCells(*board));
 	printBoard(*board);
+	printBoardPossibilities(*board);
+	printNumPossibilities(*board);
 
 	
 	//	int x = 6;
