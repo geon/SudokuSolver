@@ -1,10 +1,3 @@
-//
-//  main.c
-//  SudokuSolver
-//
-//  Created by Victor Widell on 2014-10-19.
-//  Copyright (c) 2014 Victor Widell. All rights reserved.
-//
 
 #include <stdio.h>
 
@@ -83,6 +76,7 @@ Board makeBoardWithString (char cells[9*9]) {
 }
 
 
+// TODO: Use set/unset, since it will always be set via 0.
 void boardSetCell (Board *board, int x, int y, int newValue) {
 	
 	Possibilities oldBit = (1<<(board->cells[y][x]));
@@ -111,6 +105,7 @@ Possibilities boardCellPossibilities (Board *board, int x, int y) {
 }
 
 
+// TODO: Use standard hamming weight function with bitmask.
 int possibilitiesCount (Possibilities p) {
 	
 	int count = 0;
@@ -143,29 +138,6 @@ int possibilitiesConstrainedValue (Possibilities p) {
 	}
 
 	return 0;
-}
-
-
-void possibilitiesPrint (Possibilities p) {
-
-	int first = 1;
-	
-	for (int i = 1; i <= 9; ++i) {
-		
-		if (1<<i & p) {
-		
-			if (!first) {
-
-				printf(", ");
-			}
-		
-			first = 0;
-			
-			printf("%d", i);
-		}
-	}
-
-	printf("\n");
 }
 
 
@@ -231,9 +203,6 @@ int boardSolve(Board *board, int cellsLeft) {
 					// Do the move.
 					boardSetCell(board, x, y, constrained);
 					
-//					printf("\nConstrained x: %d, y: %d, to: %d", x, y, constrained);
-//					boardPrint(board);
-
 					if (boardSolve(board, cellsLeft - 1)) {
 						
 						return 1;
@@ -242,7 +211,6 @@ int boardSolve(Board *board, int cellsLeft) {
 						
 						// Backtrack.
 						boardSetCell(board, x, y, 0);
-//						printf("\nBacktracked constrained x: %d, y: %d, possible: %d", x, y, constrained);
 						
 						// Don't try the next cell, since it was already tried in the recursion above.
 						return 0;
@@ -251,9 +219,6 @@ int boardSolve(Board *board, int cellsLeft) {
 			}
 		}
 	}
-
-//	printf("\nChecked all constrianed.");
-
 	
 	// Underconstrained, so try out all possible moves.
 	for (int y = 0; y < 9; ++y) {
@@ -266,9 +231,6 @@ int boardSolve(Board *board, int cellsLeft) {
 						// Do the move.
 						boardSetCell(board, x, y, i);
 						
-//						printf("\nGuessed x: %d, y: %d, to: %d", x, y, i);
-//						boardPrint(board);
-						
 						if (boardSolve(board, cellsLeft - 1)) {
 							
 							return 1;
@@ -277,8 +239,6 @@ int boardSolve(Board *board, int cellsLeft) {
 						// Backtrack.
 						boardSetCell(board, x, y, 0);
 
-//						printf("\nBacktracked guessed x: %d, y: %d", x, y);
-						
 						// Try the next possible value...
 					}
 				}
@@ -289,8 +249,6 @@ int boardSolve(Board *board, int cellsLeft) {
 		}
 	}
 
-//	printf("\nNo solution found. :( %d", cellsLeft);
-
 	// No solution found. :(
 	return 0;
 }
@@ -298,23 +256,6 @@ int boardSolve(Board *board, int cellsLeft) {
 
 int main (int argc, const char * argv[]) {
 
-/*
-	Board evil = makeBoardWithInitialCells((int[9][9]) {
-		{2,0,0,  0,0,0,  4,0,0},
-		{0,0,1,  0,0,7,  0,0,0},
-		{0,0,0,  4,8,0,  5,0,2},
-		
-		{1,3,0,  0,4,0,  0,0,0},
-		{0,0,8,  2,0,1,  3,0,0},
-		{0,0,0,  0,3,0,  0,4,5},
-		
-		{6,0,7,  0,1,3,  0,0,0},
-		{0,0,0,  6,0,0,  8,0,0},
-		{0,0,4,  0,0,0,  0,0,1}
-	});
-*/
-
-	
 	int lineLength = 9*9+1;
 	
 	FILE *file = fopen("/Users/geon/Desktop/sudoku17 2.txt", "r");
@@ -326,22 +267,6 @@ int main (int argc, const char * argv[]) {
 		boardSolve(&board, boardCellsLeft(&board));
 		boardPrint(&board);
 	}
-		
-	
-	//	int x = 6;
-	//	int y = 5;
-	//
-	//	possibilitiesPrint(rowPossibilities(board, y));
-	//	possibilitiesPrint(colPossibilities(board, x));
-	//	possibilitiesPrint(tilePossibilities(board, x/3, y/3));
-	
-	//	Possibilities p = boardCellPossibilities(board, x, y);
-	//
-	//	possibilitiesPrint(p);
-	//
-	//	printf("%d\n", possibilitiesCount(p));
-	//	printf("%d\n", possibilitiesConstrainedValue(p));
-	
     
 	return 0;
 }
