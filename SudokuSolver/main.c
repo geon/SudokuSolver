@@ -7,133 +7,111 @@
 //
 
 #include <stdio.h>
-#include <stdlib.h>
 
-typedef int Board[9][9];
+
 typedef int Possibilities;
 
+typedef struct {
 
-Possibilities rowPossibilities (Board board, int y) {
-	
-	Possibilities p = ~0;
-	
-	for (int x = 0; x < 9; ++x) {
-		
-		int value = board[y][x];
-		
-		if (value) {
-			
-			p &= ~(1<<value);
-		}
-	}
-	
-	return p;
-}
+	int cells[9][9];
+	Possibilities rowPossibilities[9];
+	Possibilities colPossibilities[9];
+	Possibilities tilePossibilities[3][3];
+} Board;
 
 
-Possibilities colPossibilities (Board board, int x) {
+
+Board makeBoard () {
 	
-	Possibilities p = ~0;
+	Board board;
 	
 	for (int y = 0; y < 9; ++y) {
-		
-		int value = board[y][x];
-		
-		if (value) {
+		for (int x = 0; x < 9; ++x) {
 			
-			p &= ~(1<<value);
+			board.cells[y][x] = 0;
 		}
 	}
 	
-	return p;
-}
+	for (int i = 0; i < 9; ++i) {
 
-
-// If I put i in this cell, how many cells do I constrain?
-int numConstrainedByMove(Board *board, int x, int y, int i) {
-	
-	int count = 0;
-	
-	// Row
-	for (int vx = 0; vx < 9; ++vx) {
-		
-		if (vx == x) {
-			
-			continue;
-		}
-		
-		if (board[y][vx] && 1<<i) {
-			
-			++count;
-		}
-	}
-	
-	// Collumn
-	for (int vy = 0; vy < 9; ++vy) {
-		
-		if (vy == y) {
-			
-			continue;
-		}
-		
-		if (board[vy][x] && 1<<i) {
-			
-			++count;
-		}
-	}
-	
-	// The rest of the tile
-	for (int vy = 0; vy < 3; ++vy) {
-		for (int vx = 0; vx < 3; ++vx) {
-			
-			if (vx == x || vy == y) {
-				
-				continue;
-			}
-			
-			if (board[vy][vx] && 1<<i) {
-				
-				++count;
-			}
-		}
+		board.rowPossibilities[i] = ~0;
+		board.colPossibilities[i] = ~0;
 	}
 
-	return 0;
-}
-
-
-Possibilities tilePossibilities (Board board, int tx, int ty) {
-	
-	Possibilities p = ~0;
-	
 	for (int y = 0; y < 3; ++y) {
-		
 		for (int x = 0; x < 3; ++x) {
-
 			
-			int value = board[ty*3 + y][tx*3 + x];
-			
-			if (value) {
-				
-				p &= ~(1<<value);
-			}
+			board.tilePossibilities[y][x] = ~0;
 		}
 	}
 	
-	return p;
+
+	return board;
 }
 
 
-Possibilities cellPossibilities (Board board, int x, int y) {
+void boardSetCell (Board *board, int x, int y, int newValue);
+
+
+Board makeBoardWithInitialCells (int cells[9][9]) {
+	
+	Board board = makeBoard();
+	
+	for (int y = 0; y < 9; ++y) {
+		for (int x = 0; x < 9; ++x) {
+			
+			boardSetCell(&board, x, y, cells[y][x]);
+		}
+	}
+	
+	return board;
+}
+
+
+Board makeBoardWithString (char cells[9*9]) {
+	
+	Board board = makeBoard();
+	
+	for (int y = 0; y < 9; ++y) {
+		for (int x = 0; x < 9; ++x) {
+			
+			boardSetCell(&board, x, y, cells[y*9 + x] - '0');
+		}
+	}
+	
+	return board;
+}
+
+
+void boardSetCell (Board *board, int x, int y, int newValue) {
+	
+	Possibilities oldBit = (1<<(board->cells[y][x]));
+	Possibilities newBitInverse = ~(1<<newValue);
+
+	// Re-set the possibility bits of the old value.
+	board->rowPossibilities[y] |= oldBit;
+	board->colPossibilities[x] |= oldBit;
+	board->tilePossibilities[y/3][x/3] |= oldBit;
+
+	// Un-set the possibility bits of the new value.
+	board->rowPossibilities[y] &= newBitInverse;
+	board->colPossibilities[x] &= newBitInverse;
+	board->tilePossibilities[y/3][x/3] &= newBitInverse;
+	
+	board->cells[y][x] = newValue;
+}
+
+
+Possibilities boardCellPossibilities (Board *board, int x, int y) {
 	
 	return
-	rowPossibilities(board, y) &
-	colPossibilities(board, x) &
-	tilePossibilities(board, x/3, y/3);
+	board->rowPossibilities[y] &
+	board->colPossibilities[x] &
+	board->tilePossibilities[y/3][x/3];
 }
 
 
-int boardNumPossibilities (Possibilities p) {
+int possibilitiesCount (Possibilities p) {
 	
 	int count = 0;
 	
@@ -149,9 +127,9 @@ int boardNumPossibilities (Possibilities p) {
 }
 
 
-int constrainedValue (Possibilities p) {
+int possibilitiesConstrainedValue (Possibilities p) {
 	
-	if (boardNumPossibilities(p) != 1) {
+	if (possibilitiesCount(p) != 1) {
 		
 		return 0;
 	}
@@ -168,7 +146,7 @@ int constrainedValue (Possibilities p) {
 }
 
 
-void printPossibilities (Possibilities p) {
+void possibilitiesPrint (Possibilities p) {
 
 	int first = 1;
 	
@@ -191,7 +169,7 @@ void printPossibilities (Possibilities p) {
 }
 
 
-void printBoard (Board board) {
+void boardPrint (Board *board) {
 	
 	printf("\n");
 
@@ -199,15 +177,15 @@ void printBoard (Board board) {
 		
 		for (int x = 0; x < 9; ++x) {
 			
-			int cell = board[y][x];
+			int cell = board->cells[y][x];
 			
 			if (cell) {
 				
-				printf(" %d", board[y][x]);
+				printf(" %d", board->cells[y][x]);
 				
 			} else {
 				
-				printf(" .");
+				printf("  ");
 			}
 		}
 		
@@ -216,282 +194,112 @@ void printBoard (Board board) {
 }
 
 
-void printNumPossibilities (Board board) {
-	
-	printf("\n");
-	
-	for (int y = 0; y < 9; ++y) {
-		
-		for (int x = 0; x < 9; ++x) {
-			
-			if (!board[y][x]) {
-				
-				printf(" %d", boardNumPossibilities(cellPossibilities(board, x, y)));
-				
-			} else {
-				
-				printf(" .");
-			}
-		}
-		
-		printf("\n");
-	}
-}
+int boardCellsLeft (Board *board) {
 
-
-void printBoardPossibilities (Board board) {
-	
-	printf("\n");
+	int count = 0;
 	
 	for (int y = 0; y < 9; ++y) {
 		
 		for (int x = 0; x < 9; ++x) {
 			
-			if (!board[y][x]) {
+			if (!board->cells[y][x]) {
 				
-				Possibilities p = cellPossibilities(board, x, y);
-				
-				const int maxPosiibilities = 3;
-				int numPossibilities = boardNumPossibilities(p);
-				if (numPossibilities <= maxPosiibilities) {
-					
-					int numPrinted = 0;
-					for (int i = 1; i <= 9; ++i) {
-						
-						if (1<<i & p) {
-							
-							printf("%d", i);
-							++numPrinted;
-							if (numPrinted >= maxPosiibilities) {
-								
-								break;
-							}
-						}
-					}
-					
-					for (int i = 0; i < 3 - numPossibilities; ++i) {
-						
-						printf(" ");
-					}
-					
-				} else {
-					
-					printf(".  ");
-				}
-								
-			} else {
-				
-				printf("%d  ", board[y][x]);
-			}
-			
-			printf(" ");
-		}
-		
-		printf("\n\n");
-	}
-}
-
-
-int setConstrainedCells (Board board) {
-
-	int changes = 0;
-	
-	for (int y = 0; y < 9; ++y) {
-		
-		for (int x = 0; x < 9; ++x) {
-			
-			if (!board[y][x]) {
-				
-				Possibilities p = cellPossibilities(board, x, y);
-				
-				int constrained = constrainedValue(p);
-				
-				if (constrained) {
-					
-//					printf("\nConstrained x: %d, y: %d, to: %d", x, y, constrained);
-					
-					board[y][x] = constrained;
-					
-					++changes;
-				}
+				++count;
 			}
 		}
 	}
 	
-	return changes;
+	return count;
 }
 
 
-int isSolved (Board board) {
+int boardSolve(Board *board, int cellsLeft) {
 
-	for (int y = 0; y < 9; ++y) {
-		
-		for (int x = 0; x < 9; ++x) {
-			
-			if (!board[y][x]) {
-				
-				return 0;
-			}
-		}
-	}
-	
-	return 1;
-}
-
-
-void copyBoard (Board from, Board to) {
-	
-	for (int y = 0; y < 9; ++y) {
-		
-		for (int x = 0; x < 9; ++x) {
-			
-			to[y][x] = from[y][x];
-		}
-	}
-}
-
-
-struct ConstraintsPerMove {
-	
-	int x;
-	int y;
-	int value;
-	int numConstraints;
-};
-
-int compareConstraintsPerMove (const struct ConstraintsPerMove * a, const struct ConstraintsPerMove * b) {
-
-	// DESC
-	return
-	b->numConstraints -
-	a->numConstraints;
-}
-
-
-int solveBoard (Board board) {
-	
-	// Try to solve the board by constraints.
-	while (setConstrainedCells(board));
-	
-	if(isSolved(board)) {
+	if(!cellsLeft) {
 		
 		return 1;
 	}
 
-	struct ConstraintsPerMove constraintsPerMove[9*9*9];
-	
-	// Underconstrained, so find all possible moves.
-	int numFoundConstraints = 0;
+	// Try to solve the board by constraints.
 	for (int y = 0; y < 9; ++y) {
 		for (int x = 0; x < 9; ++x) {
+			if (!board->cells[y][x]) {
+				Possibilities p = boardCellPossibilities(board, x, y);
+				int constrained = possibilitiesConstrainedValue(p);
+				if (constrained) {
+										
+					// Do the move.
+					boardSetCell(board, x, y, constrained);
+					
+//					printf("\nConstrained x: %d, y: %d, to: %d", x, y, constrained);
+//					boardPrint(board);
 
-			if (!board[y][x]) {
-
-				Possibilities p = cellPossibilities(board, x, y);
-				for (int i = 1; i <= 9; ++i) {
-
+					if (boardSolve(board, cellsLeft - 1)) {
 						
-					if (p & 1<<i) {
-											
-						constraintsPerMove[numFoundConstraints] =
-						(struct ConstraintsPerMove) {
-							.x = x,
-							.y = y,
-							.value = i,
-							.numConstraints =
-							numConstrainedByMove(board, x, y, i)
-						};
+						return 1;
 						
-						++numFoundConstraints;
+					} else {
+						
+						// Backtrack.
+						boardSetCell(board, x, y, 0);
+//						printf("\nBacktracked constrained x: %d, y: %d, possible: %d", x, y, constrained);
+						
+						// Don't try the next cell, since it was already tried in the recursion above.
+						return 0;
 					}
 				}
 			}
 		}
 	}
 
-	// Do the possible moves in the most constraining order.
-	qsort(&constraintsPerMove,
-		  numFoundConstraints,
-		  sizeof(struct ConstraintsPerMove),
-		  (int (*)(const void *, const void *)) compareConstraintsPerMove);
-	
-	for (int j = 0; j < numFoundConstraints; ++j) {
+//	printf("\nChecked all constrianed.");
 
-		int x = constraintsPerMove[j].x;
-		int y = constraintsPerMove[j].y;
-		int value = constraintsPerMove[j].value;
+	
+	// Underconstrained, so try out all possible moves.
+	for (int y = 0; y < 9; ++y) {
+		for (int x = 0; x < 9; ++x) {
+			if (!board->cells[y][x]) {
+				Possibilities p = boardCellPossibilities(board, x, y);
+				for (int i = 1; i <= 9; ++i) {
+					if (1<<i & p) {
 						
-		// Use a copy.
-		Board copy;
-		copyBoard(board, copy);
-		
-		// Do the move.
-		copy[y][x] = value;
-		
-		printBoard(copy);
-		
-		if (solveBoard(copy)) {
-			
-			// Found a complete solution, so use it.
-			
-			copyBoard(copy, board);
-			return 1;
+						// Do the move.
+						boardSetCell(board, x, y, i);
+						
+//						printf("\nGuessed x: %d, y: %d, to: %d", x, y, i);
+//						boardPrint(board);
+						
+						if (boardSolve(board, cellsLeft - 1)) {
+							
+							return 1;
+						}
+
+						// Backtrack.
+						boardSetCell(board, x, y, 0);
+
+//						printf("\nBacktracked guessed x: %d, y: %d", x, y);
+						
+						// Try the next possible value...
+					}
+				}
+				
+				// No possible move on this cell. Trying elsewhere won't help.
+				return 0;
+			}
 		}
 	}
-	
+
+//	printf("\nNo solution found. :( %d", cellsLeft);
+
 	// No solution found. :(
 	return 0;
 }
 
 
 int main (int argc, const char * argv[]) {
-	
-	// Puzzles from www.websudoku.com
-	
-	Board easy = {
-		{0,0,1,  3,2,4,  0,0,0},
-		{0,0,0,  0,0,6,  0,0,4},
-		{9,2,0,  0,8,0,  3,0,6},
-		
-		{1,0,0,  2,0,8,  5,6,0},
-		{8,0,0,  0,5,0,  0,0,1},
-		{0,6,2,  9,0,1,  0,0,8},
-		
-		{3,0,9,  0,1,0,  0,7,2},
-		{4,0,0,  8,0,0,  0,0,0},
-		{0,0,0,  7,3,9,  4,0,0}
-	};
-	
-	Board medium = {
-		{0,4,0,  1,2,0,  0,9,0},
-		{0,0,3,  0,5,0,  0,0,0},
-		{9,5,0,  8,6,0,  0,0,0},
-		
-		{8,0,9,  0,0,0,  0,0,3},
-		{0,0,0,  3,0,6,  0,0,0},
-		{6,0,0,  0,0,0,  5,0,2},
-		
-		{0,0,0,  0,3,8,  0,2,1},
-		{0,0,0,  0,7,0,  6,0,0},
-		{0,9,0,  0,1,5,  0,3,0}
-	};
-	
-	Board hard = {
-		{8,0,1,  0,3,6,  2,0,0},
-		{2,0,0,  0,0,4,  0,9,0},
-		{0,0,9,  0,0,2,  0,0,0},
-		
-		{0,1,0,  0,0,0,  0,0,2},
-		{0,0,0,  6,0,8,  0,0,0},
-		{6,0,0,  0,0,0,  0,7,0},
-		
-		{0,0,0,  8,0,0,  1,0,0},
-		{0,2,0,  7,0,0,  0,0,4},
-		{0,0,5,  2,4,0,  6,0,3}
-	};
-	
-	
-	Board evil = {
+
+/*
+	Board evil = makeBoardWithInitialCells((int[9][9]) {
 		{2,0,0,  0,0,0,  4,0,0},
 		{0,0,1,  0,0,7,  0,0,0},
 		{0,0,0,  4,8,0,  5,0,2},
@@ -503,49 +311,36 @@ int main (int argc, const char * argv[]) {
 		{6,0,7,  0,1,3,  0,0,0},
 		{0,0,0,  6,0,0,  8,0,0},
 		{0,0,4,  0,0,0,  0,0,1}
-	};
+	});
+*/
+
 	
-	Board hardest = {
-		{8,0,0,  0,0,0,  0,0,0},
-		{0,0,3,  6,0,0,  0,0,0},
-		{0,7,0,  0,9,0,  2,0,0},
+	int lineLength = 9*9+1;
+	
+	FILE *file = fopen("/Users/geon/Desktop/sudoku17 2.txt", "r");
+	char line[lineLength];
+	
+	while (fread(line, 1, lineLength, file) == lineLength) {
+		Board board = makeBoardWithString(line);
+		boardPrint(&board);
+		boardSolve(&board, boardCellsLeft(&board));
+		boardPrint(&board);
+	}
 		
-		{0,5,0,  0,0,7,  0,0,0},
-		{0,0,0,  0,4,5,  7,0,0},
-		{0,0,0,  1,0,0,  0,3,0},
-		
-		{0,0,1,  0,0,0,  0,6,8},
-		{0,0,8,  5,0,0,  0,1,0},
-		{0,9,0,  0,0,0,  4,0,0}
-	};
-	
-	Board *board = &medium;
-
-	printBoard(*board);
-	solveBoard(*board);
-	printBoard(*board);
-
-	
-	// printBoard(*board);
-	// while (setConstrainedCells(*board));
-	// printBoard(*board);
-	// printBoardPossibilities(*board);
-	// printNumPossibilities(*board);
-
 	
 	//	int x = 6;
 	//	int y = 5;
 	//
-	//	printPossibilities(rowPossibilities(board, y));
-	//	printPossibilities(colPossibilities(board, x));
-	//	printPossibilities(tilePossibilities(board, x/3, y/3));
+	//	possibilitiesPrint(rowPossibilities(board, y));
+	//	possibilitiesPrint(colPossibilities(board, x));
+	//	possibilitiesPrint(tilePossibilities(board, x/3, y/3));
 	
-	//	Possibilities p = cellPossibilities(board, x, y);
+	//	Possibilities p = boardCellPossibilities(board, x, y);
 	//
-	//	printPossibilities(p);
+	//	possibilitiesPrint(p);
 	//
-	//	printf("%d\n", numPossibilities(p));
-	//	printf("%d\n", constrainedValue(p));
+	//	printf("%d\n", possibilitiesCount(p));
+	//	printf("%d\n", possibilitiesConstrainedValue(p));
 	
     
 	return 0;
