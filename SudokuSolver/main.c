@@ -76,23 +76,29 @@ Board makeBoardWithString (char cells[9*9]) {
 }
 
 
-// TODO: Use set/unset, since it will always be set via 0.
 void boardSetCell (Board *board, int x, int y, int newValue) {
 	
-	Possibilities oldBit = (1<<(board->cells[y][x]));
 	Possibilities newBitInverse = ~(1<<newValue);
-
-	// Re-set the possibility bits of the old value.
-	board->rowPossibilities[y] |= oldBit;
-	board->colPossibilities[x] |= oldBit;
-	board->tilePossibilities[y/3][x/3] |= oldBit;
-
+	
 	// Un-set the possibility bits of the new value.
 	board->rowPossibilities[y] &= newBitInverse;
 	board->colPossibilities[x] &= newBitInverse;
 	board->tilePossibilities[y/3][x/3] &= newBitInverse;
 	
 	board->cells[y][x] = newValue;
+}
+
+
+void boardUnsetCell (Board *board, int x, int y) {
+	
+	Possibilities oldBit = (1<<(board->cells[y][x]));
+	
+	// Re-set the possibility bits of the old value.
+	board->rowPossibilities[y] |= oldBit;
+	board->colPossibilities[x] |= oldBit;
+	board->tilePossibilities[y/3][x/3] |= oldBit;
+
+	board->cells[y][x] = 0;
 }
 
 
@@ -210,7 +216,7 @@ int boardSolve(Board *board, int cellsLeft) {
 					} else {
 						
 						// Backtrack.
-						boardSetCell(board, x, y, 0);
+						boardUnsetCell(board, x, y);
 						
 						// Don't try the next cell, since it was already tried in the recursion above.
 						return 0;
@@ -237,7 +243,7 @@ int boardSolve(Board *board, int cellsLeft) {
 						}
 
 						// Backtrack.
-						boardSetCell(board, x, y, 0);
+						boardUnsetCell(board, x, y);
 
 						// Try the next possible value...
 					}
