@@ -1,5 +1,6 @@
 
 #include <stdio.h>
+#include <stdlib.h>
 
 
 typedef int Possibilities;
@@ -191,6 +192,23 @@ int boardCellsLeft (Board *board) {
 }
 
 
+struct PossibilitiesPerPosition {
+	
+	int x;
+	int y;
+	Possibilities p;
+	int numPossibilities;
+};
+
+
+int comparePossibilitiesPerPosition (const struct PossibilitiesPerPosition * a, const struct PossibilitiesPerPosition * b) {
+	
+	return
+	a->numPossibilities -
+	b->numPossibilities;
+}
+
+
 int boardSolve(Board *board, int cellsLeft) {
 
 	if(!cellsLeft) {
@@ -225,37 +243,67 @@ int boardSolve(Board *board, int cellsLeft) {
 			}
 		}
 	}
-	
-	// Underconstrained, so try out all possible moves.
+
+
+	// Underconstrained, so find all possible moves.
+	struct PossibilitiesPerPosition possibilitiesPerPosition[9*9];
+	int numFoundPositions = 0;
 	for (int y = 0; y < 9; ++y) {
 		for (int x = 0; x < 9; ++x) {
 			if (!board->cells[y][x]) {
-				Possibilities p = boardCellPossibilities(board, x, y);
-				for (int i = 1; i <= 9; ++i) {
-					if (1<<i & p) {
-						
-						// Do the move.
-						boardSetCell(board, x, y, i);
-						
-						if (boardSolve(board, cellsLeft - 1)) {
-							
-							return 1;
-						}
-
-						// Backtrack.
-						boardUnsetCell(board, x, y);
-
-						// Try the next possible value...
-					}
-				}
 				
-				// No possible move on this cell. Trying elsewhere won't help.
-				return 0;
+				Possibilities p = boardCellPossibilities(board, x, y);
+				possibilitiesPerPosition[numFoundPositions] =
+				(struct PossibilitiesPerPosition) {
+					.x = x,
+					.y = y,
+					.p = p,
+					.numPossibilities =
+					possibilitiesCount(p)
+				};
+				
+				++numFoundPositions;
 			}
 		}
 	}
+	
+	
+	// Do the possible moves in the most constrained order.
+	qsort(&possibilitiesPerPosition,
+		  numFoundPositions,
+		  sizeof(struct PossibilitiesPerPosition),
+		  (int (*)(const void *, const void *)) comparePossibilitiesPerPosition);
+	
+	for (int j = 0; j < numFoundPositions; ++j) {
+		
+		int x = possibilitiesPerPosition[j].x;
+		int y = possibilitiesPerPosition[j].y;
+		Possibilities p = possibilitiesPerPosition[j].p;
+		
+		for (int i = 1; i <= 9; ++i) {
+			if (1<<i & p) {
+				
+				// Do the move.
+				boardSetCell(board, x, y, i);
+				
+				if (boardSolve(board, cellsLeft - 1)) {
+					
+					return 1;
+				}
+				
+				// Backtrack.
+				boardUnsetCell(board, x, y);
+				
+				// Try the next possible value...
+			}
+		}
 
-	// No solution found. :(
+		// No possible move on this cell. Trying elsewhere won't help.
+		return 0;
+	}
+
+	
+	// No solution found.
 	return 0;
 }
 
